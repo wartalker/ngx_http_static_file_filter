@@ -82,6 +82,21 @@ ngx_http_static_file_filter_handler(ngx_http_request_t *r)
 	return NGX_DECLINED;
 }
 
+void
+append_type(ngx_array_t *types, ngx_str_t *t)
+{
+	ngx_str_t *type;
+
+	type = ngx_array_push(types);
+	if (type == NULL) {
+		return;
+	}
+
+	type->len = t->len;
+	type->data = ngx_pstrdup(types->pool, t);
+	return;
+}
+
 static char *
 ngx_http_static_file_filter_conf(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -105,12 +120,7 @@ ngx_http_static_file_filter_conf(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 	}
 
 	for (i = 0; i < n; ++i) {
-		type = ngx_array_push(sffcf->types);
-		if (type == NULL) {
-			return NGX_CONF_ERROR;
-		}
-		type->len = value[i].len;
-		type->data = ngx_pstrdup(cf->pool, &value[i]);
+		append_type(sffcf->types, &value[i]);
 	}
 
 	return NGX_CONF_OK;
@@ -126,6 +136,8 @@ ngx_http_static_file_filter_create_loc_conf(ngx_conf_t *cf)
 		return NULL;
 	}
 
+	conf->types = NULL;
+
 	return conf;
 }
 
@@ -134,9 +146,18 @@ ngx_http_static_file_filter_merge_loc_conf(ngx_conf_t *cf, void *parent, void *c
 {
 	ngx_http_static_file_filter_loc_conf_t *prev = parent;
 	ngx_http_static_file_filter_loc_conf_t *conf = child;
+	ngx_uint_t i;
+	ngx_str_t *value;
 
 	if (conf->types == NULL) {
 		conf->types = prev->types;
+	}
+	else if (prev->types != NULL) {
+		value = prev->types->elts;
+
+		for (i = 0; i < prev->types->nelts; ++i) {
+			append_type(conf->types, &value[i]);
+		}
 	}
 
 	return NGX_CONF_OK;
