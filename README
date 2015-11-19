@@ -1,5 +1,4 @@
 
 static_file_filter: php;
 
-this option will prevent exposing php source code, client will got 403 when get php files
-as static type.
+this option will prevent exposing php source code, client will got 403 when get php files as static type.
